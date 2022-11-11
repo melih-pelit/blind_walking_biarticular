@@ -1,4 +1,4 @@
-function animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, sample_time)
+function animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k)
 pause
 if f_video == 1
     video_v = VideoWriter('5link_SLIP_walking.avi');

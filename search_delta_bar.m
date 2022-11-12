@@ -1,4 +1,4 @@
-function [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, terrain_name, params, Tf, gains)
+function [simout, inputTorque, des_theta_alpha, flag, time, PASS, k] = search_delta_bar(landing_traj, terrain_name, params, Tf, gains)
 
 %%
 

@@ -12,8 +12,16 @@ load('OpenOCLTraj\BA_landing_traj_v12022-07-06-17-15'); % loads the landing_traj
 ocl_traj = landing_traj.ocl_traj;
 %% uneven ground input
 
-terrain_name = 'terrain data\unevenground_0_1_v2_15.mat'; % single seed
+terrain_name = 'terrain data\unevenground_0_1_v2_13.mat'; % single seed
 load(terrain_name)
+
+% try catch is because I previously didn't have "seed" fields for some terrain
+try
+    uneven_terrain.seed
+catch
+    uneven_terrain.seed = 10 * uneven_terrain.y_g(101,:); % TODO
+end
+uneven_terrain.y_g_curr = 0.001 * uneven_terrain.seed; % set this temporarily for BUS setting
 %% Model parameters
 params.m1 = 5;
 params.m2 = 5;
@@ -51,8 +59,10 @@ param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; param
 %% 
 
 Tf = 10;
-K_p = 9700;
-K_d = 220;
+% K_p = 9700;
+% K_d = 220;
+K_p = 2700;
+K_d = 80;
 gains = [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d];
 open_system('model_5LinkWalking_NODS')
 
@@ -60,11 +70,12 @@ simulation_type = 2;
 switch simulation_type
     case 1
         % run a single walking simulation on terrain height k
-        k = 1; % delta = (k-1)*0.001 m
-        [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, terrain_name, params, Tf, gains, k);
+        k = 101; % delta = (k-1)*0.001 m
+        [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
     case 2
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
-        [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, terrain_name, params, Tf, gains);
+        [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains);
+        k = PASS / uneven_terrain.deltaY_inc + 1;
 end
 %% Trajectory Tracking Plots
 

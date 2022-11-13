@@ -1,29 +1,17 @@
-function [simout, inputTorque, des_theta_alpha, flag, time, PASS, k] = search_delta_bar(landing_traj, terrain_name, params, Tf, gains)
+function [simout, inputTorque, des_theta_alpha, flag, time, PASS, k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains)
 
 %%
-
-load(terrain_name)
-uneven_terrain.y_g_curr = uneven_terrain.y_g(1,:);
-uneven_terrain_bus_info = Simulink.Bus.createObject(uneven_terrain);
-uneven_terrain_bus = evalin('base', uneven_terrain_bus_info.busName);
-
-%%
-skip_amount = 10; % skip how many 0.001 m to make it faster
+skip_amount = 20; % skip how many 0.001 m to make it faster
 size_y_g = size(uneven_terrain.y_g);
 flag_break = 0;
 
 % uneven ground test
 nt = size(uneven_terrain.y_g);
-for k=1:skip_amount:nt(1)
-
-    if k > size_y_g(1)
-        % if k is beyond the generated terrain delta
-        PASS = k*size_y_g(1);
-        break
-    end
+% for k=1:skip_amount:nt(1)
+for k=1:skip_amount:201
 
     % Run the simulation
-    [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, terrain_name, params, Tf, gains, k);
+    [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
 
     terrain_height = (k*uneven_terrain.deltaY_inc - uneven_terrain.deltaY_inc);
     if time(end)<10 && terrain_height ~= 0
@@ -38,7 +26,7 @@ for k=1:skip_amount:nt(1)
 
             % Run the simulation
 
-            [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, terrain_name, params, Tf, gains, k);
+            [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
 
             terrain_height = (k*uneven_terrain.deltaY_inc - uneven_terrain.deltaY_inc);
 
@@ -76,4 +64,5 @@ for k=1:skip_amount:nt(1)
         break
     end
 end
+
 end

@@ -1,4 +1,4 @@
-function [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, terrain_name, params, Tf, gains, k)
+function [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k)
 
 %%
 ocl_traj = landing_traj.ocl_traj;
@@ -13,10 +13,7 @@ joint_angles_ref = [ocl_traj.time, ocl_traj.simout, alpha_ref];
 alpha_ref_landing = pi - (2*landing_traj.simout(:,1)+landing_traj.simout(:,2))/2;
 landing_ref = [landing_traj.time, landing_traj.simout, alpha_ref_landing];
 
-%%
-
-load(terrain_name)
-uneven_terrain.y_g_curr = uneven_terrain.y_g(1,:);
+%% Set the uneven_terrain BUS
 uneven_terrain_bus_info = Simulink.Bus.createObject(uneven_terrain);
 uneven_terrain_bus = evalin('base', uneven_terrain_bus_info.busName);
 
@@ -35,7 +32,9 @@ X = [q0; dq0];
 Initial_state = [q0;dq0];
 init_t_mode_change = -ocl_traj.time(N); % if I start the simulation for the mid point of the SS phase, i need to set this so that controller starts from the correct spot
 
-uneven_terrain.y_g_curr = uneven_terrain.y_g(k,:);
+delta = (k - 1)*uneven_terrain.deltaY_inc;
+uneven_terrain.seed = 10 * uneven_terrain.y_g(101,:); % TODO
+uneven_terrain.y_g_curr = delta * uneven_terrain.seed;
 
 x_g = uneven_terrain.track_start:uneven_terrain.dist_step_size:uneven_terrain.track_end;
 y_g = uneven_terrain.y_g_curr;

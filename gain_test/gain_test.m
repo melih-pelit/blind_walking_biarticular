@@ -12,8 +12,16 @@ load('..\OpenOCLTraj\BA_landing_traj_v12022-07-06-17-15'); % loads the landing_t
 ocl_traj = landing_traj.ocl_traj;
 %% uneven ground input
 
-terrain_name = '..\terrain data\unevenground_0_1_v2_15.mat'; % single seed
+terrain_name = '..\terrain data\unevenground_0_1_v2_13.mat'; % single seed
 load(terrain_name)
+
+% try catch is because I previously didn't have "seed" fields for some terrain
+try
+    uneven_terrain.seed
+catch
+    uneven_terrain.seed = 10 * uneven_terrain.y_g(101,:); % TODO
+end
+uneven_terrain.y_g_curr = 0.001 * uneven_terrain.seed; % set this temporarily for BUS setting
 %% Model parameters
 params.m1 = 5;
 params.m2 = 5;
@@ -50,11 +58,8 @@ params.phi_k0 = pi; % [rad] free angle of springs at knee
 param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
 
 %% gain test and recording
-% gains_KP = 100:200:20000;
-% gains_KD = 0:20:500;
-
-gains_KP = 500:250:1000;
-gains_KD = 50:25:100;
+gains_KP = 100:200:20000;
+gains_KD = 0:20:500;
 
 start_i = 1;
 
@@ -89,7 +94,7 @@ for i=start_i:length(gains_KP)
         fprintf ('-----KP=%.4f, KD=%.4f----- \n', K_p, K_d);
 
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
-        [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, terrain_name, params, Tf, gains);
+        [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains);
         gain_test_result.PASS = PASS;
         fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
         save(fullfile(subfolder,filename),'gain_test_result')

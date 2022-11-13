@@ -74,7 +74,9 @@ for i = 1:frame_leap:nt
     
     % plotting uneven terrain ----------------------------------------------
     x_g = uneven_terrain.track_start:uneven_terrain.dist_step_size:uneven_terrain.track_end;
-    plot(x_g, uneven_terrain.y_g(k,:), 'k', 'LineWidth', 1.5);
+    delta = (k - 1)*uneven_terrain.deltaY_inc;
+    uneven_terrain.seed = 10 * uneven_terrain.y_g(101,:); % TODO
+    plot(x_g, delta * uneven_terrain.seed, 'k', 'LineWidth', 1.5);
     %-----------------------------------------------------------
     
     % plotting desired location of swing foot and CoM--------------

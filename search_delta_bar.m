@@ -1,7 +1,6 @@
-function [simout, inputTorque, des_theta_alpha, flag, time, PASS, k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains)
+function [simout, inputTorque, des_theta_alpha, flag, time, PASS, k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount)
 
 %%
-skip_amount = 20; % skip how many 0.001 m to make it faster
 size_y_g = size(uneven_terrain.y_g);
 flag_break = 0;
 

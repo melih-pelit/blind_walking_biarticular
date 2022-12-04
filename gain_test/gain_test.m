@@ -69,7 +69,7 @@ load('gain_test_results\5LinkWalkingOpenOCL2022-11-20-12-37.mat')
 PASS = gain_test_result.PASS;
 size_PASS = size(PASS);
 start_i = size_PASS(1);
-date_str = ocl_traj.date_str;
+date_str = gain_test_result.date_str;
 
 % recording
 % gain_test_result.ocl_traj_name = ocl_traj.date_str;
@@ -79,6 +79,7 @@ date_str = ocl_traj.date_str;
 % gain_test_result.terrain_name = terrain_name;
 % gain_test_result.params = params;
 % date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+% gain_test_result.date_str = date_str
 
 filename = sprintf('5LinkWalkingOpenOCL%s.mat', date_str);
 subfolder = 'gain_test_results';
@@ -97,7 +98,8 @@ for i=start_i:length(gains_KP)
         fprintf ('-----KP=%.4f, KD=%.4f----- \n', K_p, K_d);
 
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
-        [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains);
+        skip_amount = 10;
+        [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
         gain_test_result.PASS = PASS;
         fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
         save(fullfile(subfolder,filename),'gain_test_result')

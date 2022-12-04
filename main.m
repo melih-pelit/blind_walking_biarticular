@@ -74,7 +74,8 @@ switch simulation_type
         [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
     case 2
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
-        [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains);
+        skip_amount = 5;
+        [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
         k = PASS / uneven_terrain.deltaY_inc + 1;
 end
 %% Trajectory Tracking Plots

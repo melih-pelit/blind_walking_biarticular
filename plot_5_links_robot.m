@@ -75,20 +75,20 @@ if f_ba_springs == 1
     
     % plotting pulleys in hip and knee
     x_knee_st = x_stance_foot + l1*cos(th1);
-    y_knee_st = l1*sin(th1);
+    y_knee_st = y_stance_foot + l1*sin(th1);
     x_hip = x_stance_foot + l1*cos(th1) + l2*cos(th1 + th2);
-    y_hip = l1*sin(th1) + l2*sin(th1 + th2);
+    y_hip = y_stance_foot + l1*sin(th1) + l2*sin(th1 + th2);
     x_knee_sw = x_stance_foot + l1*cos(th1) + l2*cos(th1 + th2) + l3*cos(th1 + th2 + th3);
-    y_knee_sw = l1*sin(th1) + l2*sin(th1 + th2) + l3*sin(th1 + th2 + th3);
+    y_knee_sw = y_stance_foot + l1*sin(th1) + l2*sin(th1 + th2) + l3*sin(th1 + th2 + th3);
     
     %%%%% plotting the biarticular springs
-    k1 = [x_stance_foot + l1*cos(th1) + r_k*cos(th1+3*pi/2), l1*sin(th1) + r_k*sin(th1+3*pi/2)]; % spring positions on stance knee
-    k2 = [x_stance_foot + l1*cos(th1) + r_k*cos(th1+pi/2), l1*sin(th1) + r_k*sin(th1+pi/2)]; % spring positions on stance knee
-    h1 = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + r_h*cos(th1+th2+3*pi/2), l1*sin(th1) + l2*sin(th1+th2) + r_h*sin(th1+th2+3*pi/2)]; % position of RF on stance leg hip
-    h2 = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + r_h*cos(th1+th2+pi/2), l1*sin(th1) + l2*sin(th1+th2) + r_h*sin(th1+th2+pi/2)]; % position of HA on stance leg hip
+    k1 = [x_stance_foot + l1*cos(th1) + r_k*cos(th1+3*pi/2), y_stance_foot + l1*sin(th1) + r_k*sin(th1+3*pi/2)]; % spring positions on stance knee
+    k2 = [x_stance_foot + l1*cos(th1) + r_k*cos(th1+pi/2), y_stance_foot + l1*sin(th1) + r_k*sin(th1+pi/2)]; % spring positions on stance knee
+    h1 = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + r_h*cos(th1+th2+3*pi/2), y_stance_foot + l1*sin(th1) + l2*sin(th1+th2) + r_h*sin(th1+th2+3*pi/2)]; % position of RF on stance leg hip
+    h2 = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + r_h*cos(th1+th2+pi/2), y_stance_foot + l1*sin(th1) + l2*sin(th1+th2) + r_h*sin(th1+th2+pi/2)]; % position of HA on stance leg hip
     
-    k1_sw = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + l3*cos(th1+th2+th3) + r_k*cos(th1+th2+th3+pi/2), l1*sin(th1) + l2*sin(th1+th2) + l3*sin(th1+th2+th3) + r_k*sin(th1+th2+th3+pi/2)]; % spring positions on swing knee
-    k2_sw = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + l3*cos(th1+th2+th3) + r_k*cos(th1+th2+th3+3*pi/2), l1*sin(th1) + l2*sin(th1+th2) + l3*sin(th1+th2+th3) + r_k*sin(th1+th2+th3+3*pi/2)];
+    k1_sw = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + l3*cos(th1+th2+th3) + r_k*cos(th1+th2+th3+pi/2), y_stance_foot + l1*sin(th1) + l2*sin(th1+th2) + l3*sin(th1+th2+th3) + r_k*sin(th1+th2+th3+pi/2)]; % spring positions on swing knee
+    k2_sw = [x_stance_foot + l1*cos(th1) + l2*cos(th1+th2) + l3*cos(th1+th2+th3) + r_k*cos(th1+th2+th3+3*pi/2), y_stance_foot + l1*sin(th1) + l2*sin(th1+th2) + l3*sin(th1+th2+th3) + r_k*sin(th1+th2+th3+3*pi/2)];
     
     RF_1 = h1 + (1/4).*[k1(1) - h1(1), k1(2) - h1(2)];
     RF_2 = k1 + (1/4).*[h1(1) - k1(1), h1(2) - k1(2)];

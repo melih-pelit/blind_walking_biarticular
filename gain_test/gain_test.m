@@ -64,19 +64,22 @@ gains_KD = 0:20:500;
 start_i = 1;
 
 % loading an old result and continuing from its last row
-% load('gain_test_results\5LinkWalkingOpenOCL2022-10-10-16-47.mat')
-% PASS = gain_test_result.PASS;
-% size_PASS = size(PASS);
-% start_i = size_PASS(1);
+display("***Loading From an Old Result***")
+load('gain_test_results\5LinkWalkingOpenOCL2022-11-20-12-37.mat')
+PASS = gain_test_result.PASS;
+size_PASS = size(PASS);
+start_i = size_PASS(1);
+date_str = ocl_traj.date_str;
 
 % recording
-gain_test_result.ocl_traj_name = ocl_traj.date_str;
-gain_test_result.landing_traj_name = landing_traj.date_str;
-gain_test_result.gains_KP = gains_KP;
-gain_test_result.gains_KD = gains_KD;
-gain_test_result.terrain_name = terrain_name;
-gain_test_result.params = params;
-date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+% gain_test_result.ocl_traj_name = ocl_traj.date_str;
+% gain_test_result.landing_traj_name = landing_traj.date_str;
+% gain_test_result.gains_KP = gains_KP;
+% gain_test_result.gains_KD = gains_KD;
+% gain_test_result.terrain_name = terrain_name;
+% gain_test_result.params = params;
+% date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+
 filename = sprintf('5LinkWalkingOpenOCL%s.mat', date_str);
 subfolder = 'gain_test_results';
 save(fullfile(subfolder,filename),'gain_test_result')

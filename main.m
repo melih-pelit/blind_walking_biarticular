@@ -64,19 +64,32 @@ Tf = 10;
 K_p = 2700;
 K_d = 80;
 gains = [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d];
-open_system('model_5LinkWalking_NODS')
+load_system('model_5LinkWalking_NODS')
 
-simulation_type = 2;
+simulation_type = 3;
 switch simulation_type
     case 1
         % run a single walking simulation on terrain height k
-        k = 101; % delta = (k-1)*0.001 m
+        k = 59; % delta = (k-1)*0.001 m
         [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
     case 2
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
         skip_amount = 5;
         [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
         k = PASS / uneven_terrain.deltaY_inc + 1;
+    case 3
+        % To check if terrain difficulty is increasing monotonically or not
+        tic
+        for i = 1: 10
+            terrain_height = (i*uneven_terrain.deltaY_inc - uneven_terrain.deltaY_inc);
+            [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, i);
+            if time(end) == 10
+                fprintf("terrain height = %.4f PASS \n", terrain_height)
+            else
+                fprintf("terrain height = %.4f FAIL \n", terrain_height)
+            end
+        end
+        toc
 end
 %% Trajectory Tracking Plots
 
@@ -90,7 +103,7 @@ f_animation = 1;
 if f_animation == 1
     f_video = 0; % flag for recording video
     f_pause = 0;
-    frame_leap = 5;
+    frame_leap = 10;
     animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k)
 pause
 end

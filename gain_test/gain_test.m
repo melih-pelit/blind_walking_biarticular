@@ -88,7 +88,7 @@ save(fullfile(subfolder,filename),'gain_test_result')
 %% 
 
 Tf = 10;
-open_system('model_5LinkWalking_NODS')
+load_system('model_5LinkWalking_NODS')
 
 for i=start_i:length(gains_KP)
     for j=1:length(gains_KD)

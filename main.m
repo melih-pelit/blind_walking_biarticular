@@ -66,17 +66,19 @@ K_d = 80;
 gains = [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d];
 load_system('model_5LinkWalking_NODS')
 
-simulation_type = 3;
+simulation_type = 4;
 switch simulation_type
     case 1
         % run a single walking simulation on terrain height k
         k = 59; % delta = (k-1)*0.001 m
         [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
     case 2
+        tic
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
         skip_amount = 5;
         [simout, inputTorque, des_theta_alpha, flag, time, PASS] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
         k = PASS / uneven_terrain.deltaY_inc + 1;
+        toc
     case 3
         % To check if terrain difficulty is increasing monotonically or not
         tic
@@ -89,6 +91,14 @@ switch simulation_type
                 fprintf("terrain height = %.4f FAIL \n", terrain_height)
             end
         end
+        toc
+    case 4
+        % % Search for the failing point (delta bar) by skipping  and
+        % searching in minus direction using parsim
+        tic
+        [PASS, k] = search_delta_bar_parallel( ...
+            landing_traj, uneven_terrain, params, Tf, K_p, K_d);
+        
         toc
 end
 %% Trajectory Tracking Plots

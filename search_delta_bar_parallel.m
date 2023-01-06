@@ -34,8 +34,8 @@ k_start = 1;
 sim_batch_amount = 8;
 k_end = k_start + sim_batch_amount - 1;
 f_break = 0;
-% while True
-for m = 1:8
+while True
+% for m = 1:8
     % Do parallel simulation in batches of sim_batch_amount
     for k = k_start:k_end
         in(k) = Simulink.SimulationInput('model_5LinkWalking_NODS');

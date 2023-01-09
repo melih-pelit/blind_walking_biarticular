@@ -17,11 +17,11 @@ K_p = 9700;
 K_d = 220;
 
 % BA params
-% r_search = 1:0.2:5;
-% k_bar_ba_search = 0:5:200;
+r_search = 1:0.2:5;
+k_bar_ba_search = 0:5:200;
 
-r_search = 1:0.2:1.4;
-k_bar_ba_search = 0:5:10;
+% r_search = 1:0.2:1.4;
+% k_bar_ba_search = 0:5:10;
 
 %% Model parameters
 params.m1 = 5;
@@ -87,7 +87,7 @@ start_i = 1;
 
 % display("***Loading From an Old Result***")
 % load('SR_test_results\5LinkWalkingOpenOCL2022-11-20-12-37.mat')
-% SR = SR_test_result.PASS;
+% SR = SR_test_result.SR;
 % size_SR = size(SR);
 % start_i = size_SR(1);
 % date_str = SR_test_result.date_str;
@@ -112,6 +112,7 @@ save(fullfile(subfolder,filename),'SR_test_result')
 delta = 0.025;
 
 for i=start_i:length(r_search)
+    fprintf ('-----r=%.4f----- \n', r_search(i))
     k = 1;
     for j=1:length(k_bar_ba_search)
 
@@ -145,13 +146,13 @@ for i=start_i:length(r_search)
         k = k + 1;
     end
 
-    out(i,:) = parsim(in, ...
+    out = parsim(in, ...
         'ShowSimulationManager', 'on', ...
         'TransferBaseWorkspaceVariables','on');
     
     % calculate SR values
     for j=1:length(k_bar_ba_search)
-        if out(i, j).time < Tf
+        if out(j).time < Tf
             specific_resistance(i,j) = NaN;
             avg_vel(i,j) = NaN;
         else
@@ -161,11 +162,14 @@ for i=start_i:length(r_search)
             params.r_h = params.r*params.r_k; % [m]
             params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
             [specific_resistance(i,j), avg_vel(i,j)] = calc_sr( ...
-                out(i,j).simout, out(i,j).inputTorque, out(i,j).flag, params, out(i,j).time);
+                out(j).simout, out(j).inputTorque, out(j).flag, params, out(j).time);
         end
     end
 
-    % save the results
+    % save the results (after each row such that less progress is lost in
+    % the event of a crash)
+    SR_test_result.SR = specific_resistance;
+    SR_test_result.avg_vel = avg_vel;
     save(fullfile(subfolder,filename),'SR_test_result')
 
     clear in
@@ -174,7 +178,7 @@ end
 %% Animation
 i = 1;
 j = 1;
-f_animation = 1;
+f_animation = 0;
 if f_animation == 1
     f_video = 0; % flag for recording video
     f_pause = 0;

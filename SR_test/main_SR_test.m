@@ -82,96 +82,102 @@ load_system('model_5LinkWalking_NODS')
 
 fprintf ('-----KP=%.4f, KD=%.4f----- \n', K_p, K_d);
 
-%% Saving
-SR_test_result.ocl_traj_name = ocl_traj.date_str;
-SR_test_result.landing_traj_name = landing_traj.date_str;
-SR_test_result.gains_KP = K_p;
-SR_test_result.gains_KD = K_d;
-SR_test_result.params = params;
-SR_test_result.r_search = r_search;
-SR_test_result.k_bar_ba_search = k_bar_ba_search;
-SR_test_result.delta = delta;
-date_str = datestr(now,'yyyy-mm-dd-HH-MM');
-SR_test_result.date_str = date_str;
-
-delta_string = strrep(num2str(delta), '.', '_');
-filename = sprintf('SR_results%s_delta_%s.mat', date_str, delta_string);
-subfolder = 'SR_test_results';
-save(fullfile(subfolder,filename),'SR_test_result')
-
 %%  parallel simulation
-terrain_search = [1, 2, 3, 4, 5]; % enter the list of terrains that will be searched
-for m = 1:length(terrain_search)
-    % loading the terrain
-    terrain_name = "..\terrain data\unevenground_v3_" + int2str(m) + ".mat"; % single seed
-    load(terrain_name)
-    fprintf("Loading %s \n", terrain_name)
+terrain_search = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; % enter the list of terrains that will be searched
+delta_search = [0, 0.025, 0.050]; % [m]
 
-    SR_test_result.result(m).terrain_name = terrain_name;
+for n = 1:length(delta_search)
+    delta = delta_search(n);
+
+    % Saving
+    SR_test_result.ocl_traj_name = ocl_traj.date_str;
+    SR_test_result.landing_traj_name = landing_traj.date_str;
+    SR_test_result.gains_KP = K_p;
+    SR_test_result.gains_KD = K_d;
+    SR_test_result.params = params;
+    SR_test_result.r_search = r_search;
+    SR_test_result.k_bar_ba_search = k_bar_ba_search;
+    SR_test_result.delta = delta;
+    date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+    SR_test_result.date_str = date_str;
+
+    delta_string = strrep(num2str(delta), '.', '_');
+    filename = sprintf('SR_results%s_delta_%s.mat', date_str, delta_string);
+    subfolder = 'SR_test_results';
     save(fullfile(subfolder,filename),'SR_test_result')
 
-    for i=1:length(r_search)
-        fprintf ('-----r=%.4f, terrain: %d/%d----- \n', r_search(i), m, length(terrain_search))
-        k = 1;
-        clear out
-        for j=1:length(k_bar_ba_search)
+    for m = 1:length(terrain_search)
+        % loading the terrain
+        terrain_name = "..\terrain data\unevenground_v3_" + int2str(m) + ".mat"; % single seed
+        load(terrain_name)
+        fprintf("Loading %s \n", terrain_name)
 
-            % biarticular muscle parameters
-            params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
-            params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
-            params.r_h = params.r*params.r_k; % [m]
-            params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
-
-            in(k) = Simulink.SimulationInput('model_5LinkWalking_NODS');
-            x_g = uneven_terrain.x_g;
-            y_g = delta.*uneven_terrain.y_g_seed;
-            y_sw_init = interp1(x_g, y_g, 0);
-            in(k) = in(k).setVariable('init_flag', ...
-                [-1; 0; ocl_traj.x_sw(1); init_t_mode_change; alpha_ref(1); 0; y_sw_init]);
-            in(k) = in(k).setVariable('uneven_terrain.y_g_curr', y_g);
-            in(k) = in(k).setVariable('param', ...
-                [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; ...
-                params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0]);
-            in(k) = in(k).setVariable('gains', [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d]);
-            in(k) = in(k).setVariable('Tf', Tf);
-            in(k) = in(k).setVariable('sample_time', sample_time);
-            in(k) = in(k).setVariable('joint_angles_ref', joint_angles_ref);
-            in(k) = in(k).setVariable('landing_ref', landing_ref);
-            in(k) = in(k).setVariable('Initial_state', Initial_state);
-            in(k) = in(k).setVariable('q0', q0);
-            in(k) = in(k).setVariable('dq0', dq0);
-            in(k) = in(k).setVariable('uneven_terrain_bus', uneven_terrain_bus);
-
-            k = k + 1;
-        end
-
-        out = parsim(in, ...
-            'ShowSimulationManager', 'off', ...
-            'TransferBaseWorkspaceVariables','on');
-
-        % calculate SR values
-        for j=1:length(k_bar_ba_search)
-            if out(j).time < Tf
-                specific_resistance(i,j) = NaN;
-                avg_vel(i,j) = NaN;
-            else
-                params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
-                params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
-                params.r_k = 0.02; % [m] we choose this value and rest of the parameters are defined according to it and r, k_bar_ba
-                params.r_h = params.r*params.r_k; % [m]
-                params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
-                [specific_resistance(i,j), avg_vel(i,j)] = calc_sr( ...
-                    out(j).simout, out(j).inputTorque, out(j).flag, params, out(j).time);
-            end
-        end
-
-        % save the results (after each row such that less progress is lost in
-        % the event of a crash)
-        SR_test_result.result(m).SR = specific_resistance;
-        SR_test_result.result(m).avg_vel = avg_vel;
+        SR_test_result.result(m).terrain_name = terrain_name;
         save(fullfile(subfolder,filename),'SR_test_result')
 
-        clear in
+        for i=1:length(r_search)
+            fprintf ('----- r=%.4f, terrain: %d/%d, delta: %d/%d ----- \n', r_search(i), m, length(terrain_search), n, length(delta_search))
+            k = 1;
+            clear out
+            for j=1:length(k_bar_ba_search)
+
+                % biarticular muscle parameters
+                params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
+                params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
+                params.r_h = params.r*params.r_k; % [m]
+                params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
+
+                in(k) = Simulink.SimulationInput('model_5LinkWalking_NODS');
+                x_g = uneven_terrain.x_g;
+                y_g = delta.*uneven_terrain.y_g_seed;
+                y_sw_init = interp1(x_g, y_g, 0);
+                in(k) = in(k).setVariable('init_flag', ...
+                    [-1; 0; ocl_traj.x_sw(1); init_t_mode_change; alpha_ref(1); 0; y_sw_init]);
+                in(k) = in(k).setVariable('uneven_terrain.y_g_curr', y_g);
+                in(k) = in(k).setVariable('param', ...
+                    [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; ...
+                    params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0]);
+                in(k) = in(k).setVariable('gains', [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d]);
+                in(k) = in(k).setVariable('Tf', Tf);
+                in(k) = in(k).setVariable('sample_time', sample_time);
+                in(k) = in(k).setVariable('joint_angles_ref', joint_angles_ref);
+                in(k) = in(k).setVariable('landing_ref', landing_ref);
+                in(k) = in(k).setVariable('Initial_state', Initial_state);
+                in(k) = in(k).setVariable('q0', q0);
+                in(k) = in(k).setVariable('dq0', dq0);
+                in(k) = in(k).setVariable('uneven_terrain_bus', uneven_terrain_bus);
+
+                k = k + 1;
+            end
+
+            out = parsim(in, ...
+                'ShowSimulationManager', 'off', ...
+                'TransferBaseWorkspaceVariables','on');
+
+            % calculate SR values
+            for j=1:length(k_bar_ba_search)
+                if out(j).time < Tf
+                    specific_resistance(i,j) = NaN;
+                    avg_vel(i,j) = NaN;
+                else
+                    params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
+                    params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
+                    params.r_k = 0.02; % [m] we choose this value and rest of the parameters are defined according to it and r, k_bar_ba
+                    params.r_h = params.r*params.r_k; % [m]
+                    params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
+                    [specific_resistance(i,j), avg_vel(i,j)] = calc_sr( ...
+                        out(j).simout, out(j).inputTorque, out(j).flag, params, out(j).time);
+                end
+            end
+
+            % save the results (after each row such that less progress is lost in
+            % the event of a crash)
+            SR_test_result.result(m).SR = specific_resistance;
+            SR_test_result.result(m).avg_vel = avg_vel;
+            save(fullfile(subfolder,filename),'SR_test_result')
+
+            clear in
+        end
     end
 end
 

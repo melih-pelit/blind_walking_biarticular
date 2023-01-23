@@ -1,4 +1,4 @@
-function animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k)
+function animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
 pause
 if f_video == 1
     video_v = VideoWriter('5link_SLIP_walking.avi');
@@ -31,16 +31,7 @@ end_sec = 20; % ending second for the animation
 % figure
 figure('units','pixels','position',[0 0 720 720])
 nt = length(simout);
-% axis equal
 
-%SLIP flags
-% SLIP_flags = [1, 1, 0];
-% ft1 = 0; % setting initial feet locations for SLIP mdeol to 0
-% ft2 = 0; % setting initial feet locations for SLIP mdeol to 0
-%
-% SLIP_params = [L_slip, alpha0, k_slip, m_slip, g];
-
-% for i = 23/sample_time:frame_leap:nt
 for i = 1:frame_leap:nt
     
     current_X = simout(i,:);
@@ -62,8 +53,8 @@ for i = 1:frame_leap:nt
     P_hip = [x1 + l1*cos(th1) + l2*cos(th1 + th2);
         z1 + l1*sin(th1) + l2*sin(th1 + th2)];  
 
-    
-    title(['t = ' num2str(time(i)) 'sec \delta = ', num2str(k*uneven_terrain.deltaY_inc - uneven_terrain.deltaY_inc) 'm'])
+    delta = (k - 1)*deltaY;
+    title(['t = ' num2str(time(i)) 'sec \delta = ', num2str(delta) 'm'])
     
     % plotting CoM----------------------------------------------
     CoM= calculate_com(current_X, param, flag(i,:), [0;0;0;0;0]);
@@ -74,9 +65,8 @@ for i = 1:frame_leap:nt
     
     % plotting uneven terrain ----------------------------------------------
     x_g = uneven_terrain.track_start:uneven_terrain.dist_step_size:uneven_terrain.track_end;
-    delta = (k - 1)*uneven_terrain.deltaY_inc;
     try
-        uneven_terrain.y_g_seed
+        uneven_terrain.y_g_seed;
     catch
         uneven_terrain.y_g_seed = 10 * uneven_terrain.y_g(101,:); % TODO
     end

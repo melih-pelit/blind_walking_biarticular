@@ -32,9 +32,8 @@ X = [q0; dq0];
 Initial_state = [q0;dq0];
 init_t_mode_change = -ocl_traj.time(N); % if I start the simulation for the mid point of the SS phase, i need to set this so that controller starts from the correct spot
 
-delta = (k - 1)*uneven_terrain.deltaY_inc;
-uneven_terrain.seed = 10 * uneven_terrain.y_g(101,:); % TODO
-uneven_terrain.y_g_curr = delta * uneven_terrain.seed;
+delta = (k - 1)*0.001;
+uneven_terrain.y_g_curr = delta * uneven_terrain.y_g_seed;
 
 x_g = uneven_terrain.track_start:uneven_terrain.dist_step_size:uneven_terrain.track_end;
 y_g = uneven_terrain.y_g_curr;

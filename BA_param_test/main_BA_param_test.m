@@ -5,7 +5,7 @@
 
 clear all
 close all
-addpath("C:\Matlab Workspace\Biarticular Robustness\Controlled System\BiarticularModelRepo")
+addpath("C:\Matlab Workspace\blind_walking_biarticular-main")
 %% Reference OpenOCL traj
 
 load('..\OpenOCLTraj\BA_landing_traj_v12022-07-06-17-15'); % loads the landing_traj variable
@@ -47,11 +47,11 @@ K_p = 9700;
 K_d = 220;
 gains = [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d];
 
-r_search = 1:0.2:5;
-k_bar_ba_search = 0:5:200;
+% r_search = 1:0.2:5;
+% k_bar_ba_search = 0:5:200;
 
-% r_search = 1:0.2:1.4;
-% k_bar_ba_search = 0:10:50;
+r_search = 1:0.2:1.4;
+k_bar_ba_search = 0:10:50;
 
 start_i = 1;
 delta_increment = 0.001;
@@ -65,21 +65,21 @@ delta_increment = 0.001;
 % date_str = BA_test_result.date_str;
 
 % recording
-BA_test_result.ocl_traj_name = ocl_traj.date_str;
-BA_test_result.landing_traj_name = landing_traj.date_str;
-BA_test_result.r_search = r_search;
-BA_test_result.k_bar_ba_search = k_bar_ba_search;
-BA_test_result.terrain_name = terrain_name;
-BA_test_result.params = params;
-BA_test_result.K_p = K_p;
-BA_test_result.K_d = K_d;
-BA_test_result.delta_increment = delta_increment;
-date_str = datestr(now,'yyyy-mm-dd-HH-MM');
-BA_test_result.date_str = date_str;
-
-filename = sprintf('BA_param_result_%s_terrain_%s.mat', date_str, terrain_name(31:33));
-subfolder = 'BA_test_results';
-save(fullfile(subfolder,filename),'BA_test_result')
+% BA_test_result.ocl_traj_name = ocl_traj.date_str;
+% BA_test_result.landing_traj_name = landing_traj.date_str;
+% BA_test_result.r_search = r_search;
+% BA_test_result.k_bar_ba_search = k_bar_ba_search;
+% BA_test_result.terrain_name = terrain_name;
+% BA_test_result.params = params;
+% BA_test_result.K_p = K_p;
+% BA_test_result.K_d = K_d;
+% BA_test_result.delta_increment = delta_increment;
+% date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+% BA_test_result.date_str = date_str;
+% 
+% filename = sprintf('BA_param_result_%s_terrain_%s.mat', date_str, terrain_name(31:33));
+% subfolder = 'BA_test_results';
+% save(fullfile(subfolder,filename),'BA_test_result')
 
 %% 
 Tf = 10;
@@ -87,33 +87,82 @@ Tf = 10;
 load_system('model_5LinkWalking_NODS')
 
 tic
-for i=start_i:length(r_search)
-    for j=1:length(k_bar_ba_search)
-        % biarticular muscle parameters
 
-        params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
-        params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
+% creating the search list
+delta_search = 0:delta_increment:0.2; % [m]
+search_list_length = length(r_search)*length(k_bar_ba_search)*length(delta_search);
+[r_search_tmp, k_bar_ba_search_tmp, delta_search_tmp] = ndgrid(r_search, k_bar_ba_search, delta_search);
+search_list = [r_search_tmp(:), k_bar_ba_search_tmp(:), K_p*ones(search_list_length, 1), K_d*ones(search_list_length, 1), delta_search_tmp(:), NaN(search_list_length, 1)];
+% clear r_search_tmp k_bar_ba_search_tmp delta_search_tmp search_list_length % TODO
 
-        params.r_h = params.r*params.r_k; % [m]
-        params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
-        param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
+search_size = 8*8; % making it a multiple of 8 since this PC has 8 cores
 
-        fprintf ('-----r=%.4f, k_bar_ba=%.4f----- \n', params.r, params.k_bar_ba);
+iter_cur = 1;
+tic
+while(1)
 
-        % Search for the failing point (delta bar) by skipping  and searching in minus direction
-        % skip_amount = 10;
-        % [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
-        [PASS(i,j), k] = search_delta_bar_parallel( ...
-            landing_traj, uneven_terrain, params, Tf, K_p, K_d, delta_increment);
-        BA_test_result.PASS = PASS;
-        fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
-        save(fullfile(subfolder,filename),'BA_test_result')
+    % append to the current search list
+    search_list_cur = search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :);
+
+    % do the search
+    search_list_cur = run_walking_simulation_parallel(landing_traj, uneven_terrain, params, Tf, search_list_cur);
+    search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :) = search_list_cur;
+
+    % remove unnecessary queries from the search_list
+    removed_entries = 0;
+    for i = 1:length(search_list_cur)
+        if search_list_cur(i, 6) == 0
+            search_list( ...
+                search_list(:,1) == search_list_cur(i, 1) & ...
+                search_list(:,2) == search_list_cur(i, 2) & ...
+                isnan(search_list(:,6)), :) = [];
+            removed_entries = removed_entries + 1;
+        end
     end
+    display(removed_entries)
+
+    % end the loop if search is complete
+    if isnan(search_list(end, 6)) ~= true
+        break
+    end
+
+    % increase the iteration
+    iter_cur = iter_cur + search_size;
+    remaining_iterations = length(search_list) - iter_cur + 1;
+    fprintf("Remaining iteration number = %d \n", remaining_iterations)
 end
+
 elapsed_time = toc;
+fprintf("Elapsed time = %f mins \n", elapsed_time/60)
 
-fprintf("Test Completed Successfully for r = " + num2str(r_search(1)) + ...
-    ":" + num2str(r_search(end)) +", k_bar_ba = " + num2str(k_bar_ba_search(1)) + ...
-    ":" + num2str(k_bar_ba_search(end))+ "\n")
-
-fprintf("Elapsed time was " + num2str(elapsed_time/60) + " mins \n")
+% %%
+% for i=start_i:length(r_search)
+%     for j=1:length(k_bar_ba_search)
+%         % biarticular muscle parameters
+% 
+%         params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
+%         params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
+% 
+%         params.r_h = params.r*params.r_k; % [m]
+%         params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
+%         param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
+% 
+%         fprintf ('-----r=%.4f, k_bar_ba=%.4f----- \n', params.r, params.k_bar_ba);
+% 
+%         % Search for the failing point (delta bar) by skipping  and searching in minus direction
+%         % skip_amount = 10;
+%         % [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
+%         [PASS(i,j), k] = search_delta_bar_parallel( ...
+%             landing_traj, uneven_terrain, params, Tf, K_p, K_d, delta_increment);
+%         BA_test_result.PASS = PASS;
+%         fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
+%         save(fullfile(subfolder,filename),'BA_test_result')
+%     end
+% end
+% elapsed_time = toc;
+% 
+% fprintf("Test Completed Successfully for r = " + num2str(r_search(1)) + ...
+%     ":" + num2str(r_search(end)) +", k_bar_ba = " + num2str(k_bar_ba_search(1)) + ...
+%     ":" + num2str(k_bar_ba_search(end))+ "\n")
+% 
+% fprintf("Elapsed time was " + num2str(elapsed_time/60) + " mins \n")

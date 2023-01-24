@@ -99,7 +99,9 @@ for i=start_i:length(gains_KP)
 
         % Search for the failing point (delta bar) by skipping  and searching in minus direction
         skip_amount = 10;
-        [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
+        % [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
+        [PASS, k] = search_delta_bar_parallel( ...
+            landing_traj, uneven_terrain, params, Tf, K_p, K_d);
         gain_test_result.PASS = PASS;
         fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
         save(fullfile(subfolder,filename),'gain_test_result')
@@ -111,13 +113,3 @@ f_print = 0;
 time_start = 0;
 time_end = 2;
 trackingPlots(simout, inputTorque, des_theta_alpha, param, flag, time, f_print, time_start, time_end) % for unnamed conference 2023
-
-%% Animation
-f_animation = 1;
-if f_animation == 1
-    f_video = 0; % flag for recording video
-    f_pause = 0;
-    frame_leap = 5;
-    animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k)
-pause
-end

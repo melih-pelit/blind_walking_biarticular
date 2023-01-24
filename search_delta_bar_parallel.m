@@ -1,4 +1,4 @@
-function [PASS, k] = search_delta_bar_parallel(landing_traj, uneven_terrain, params, Tf, K_p, K_d)
+function [PASS, k] = search_delta_bar_parallel(landing_traj, uneven_terrain, params, Tf, K_p, K_d, delta_increment)
 
 % Reference OpenOCL traj
 ocl_traj = landing_traj.ocl_traj;
@@ -31,16 +31,17 @@ fprintf ('-----KP=%.4f, KD=%.4f----- \n', K_p, K_d);
 
 %%  parallel simulation
 k_start = 1;
-sim_batch_amount = 8;
+sim_batch_amount = 16;
 k_end = k_start + sim_batch_amount - 1;
 f_break = 0;
-while True
+while 1
 % for m = 1:8
     % Do parallel simulation in batches of sim_batch_amount
     for k = k_start:k_end
         in(k) = Simulink.SimulationInput('model_5LinkWalking_NODS');
-        x_g = uneven_terrain.track_start:uneven_terrain.dist_step_size:uneven_terrain.track_end;
-        y_g = uneven_terrain.y_g(k,:);
+        delta_curr = (k - 1)*delta_increment;
+        x_g = uneven_terrain.x_g;
+        y_g = delta_curr*uneven_terrain.y_g_seed;
         y_sw_init = interp1(x_g, y_g, 0);
         in(k) = in(k).setVariable('init_flag', ...
             [-1; 0; ocl_traj.x_sw(1); init_t_mode_change; alpha_ref(1); 0; y_sw_init]);
@@ -66,15 +67,15 @@ while True
     for k = k_start:k_end
         time_end(k) = out(k).time(end);
         if time_end(k) < Tf
-            PASS = (k - 1)*uneven_terrain.deltaY_inc;
-            fprintf ('Failed at Delta = %.4f \n', (k - 1)*uneven_terrain.deltaY_inc);
+            PASS = (k - 2)*delta_increment;
+            fprintf ('Failed at Delta = %.4f \n', (k - 1)*delta_increment);
             f_break = 1;
             break
         end
+        fprintf ('Pass at Delta = %.4f \n', (k - 1)*delta_increment);
     end
 
     if f_break == 1
-        f_break = 0;
         break
     end
 

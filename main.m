@@ -48,8 +48,8 @@ params.I5 = 1.1520;
 % params.r = ocl_traj.biart.r; % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
 % params.k_bar_ba = ocl_traj.biart.k_bi; % [Nm] k_bar_ba = k_ba * r_k^2
 
-params.r = 1.4; % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
-params.k_bar_ba = 20; % [Nm] k_bar_ba = k_ba * r_k^2
+params.r = 1.6; % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
+params.k_bar_ba = 200; % [Nm] k_bar_ba = k_ba * r_k^2
 
 params.r_k = 0.02; % [m] we choose this value and rest of the parameters are defined according to it and r, k_bar_ba
 params.r_h = params.r*params.r_k; % [m]
@@ -73,7 +73,7 @@ simulation_type = 1;
 switch simulation_type
     case 1
         % run a single walking simulation on terrain height k
-        k = 51; % delta = (k-1)*0.001 m
+        k = 62; % delta = (k-1)*0.001 m
         deltaY = 0.001;
         [simout, inputTorque, des_theta_alpha, flag, time] = run_walking_simulation(landing_traj, uneven_terrain, params, Tf, gains, k);
         fprintf("Time(end) = " + num2str(time(end)) + "\n")
@@ -114,7 +114,7 @@ time_end = 2;
 trackingPlots(simout, inputTorque, des_theta_alpha, param, flag, time, f_print, time_start, time_end) % for unnamed conference 2023
 
 %% Animation
-f_animation = 1;
+f_animation = 0;
 if f_animation == 1
     f_video = 0; % flag for recording video
     f_pause = 0;

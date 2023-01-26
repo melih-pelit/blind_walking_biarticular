@@ -5,14 +5,14 @@
 
 clear all
 close all
-addpath("C:\Matlab Workspace\blind_walking_biarticular-main")
+addpath("..\") % add above directory to path
 %% Reference OpenOCL traj
 
 load('..\OpenOCLTraj\BA_landing_traj_v12022-07-06-17-15'); % loads the landing_traj variable
 ocl_traj = landing_traj.ocl_traj;
 %% uneven ground input
 
-terrain_name = '..\terrain data\unevenground_v3_1.mat'; % single seed
+terrain_name = '..\terrain data\unevenground_v3_2.mat'; % single seed
 load(terrain_name)
 
 % try catch is because I previously didn't have "seed" fields for some terrain
@@ -47,39 +47,35 @@ K_p = 9700;
 K_d = 220;
 gains = [K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d,K_p,K_d];
 
-% r_search = 1:0.2:5;
-% k_bar_ba_search = 0:5:200;
+r_search = 1:0.2:5;
+k_bar_ba_search = 0:5:200;
 
-r_search = 1:0.2:1.4;
-k_bar_ba_search = 0:10:50;
+% r_search = 1:0.2:1.4;
+% k_bar_ba_search = 0:10:50;
 
 start_i = 1;
 delta_increment = 0.001;
 
 % loading an old result and continuing from its last row
 % display("***Loading From an Old Result***")
-% load('gain_test_results\5LinkWalkingOpenOCL2022-11-20-12-37.mat')
-% PASS = BA_test_result.PASS;
-% size_PASS = size(PASS);
-% start_i = size_PASS(1);
-% date_str = BA_test_result.date_str;
+ % TODO
 
 % recording
-% BA_test_result.ocl_traj_name = ocl_traj.date_str;
-% BA_test_result.landing_traj_name = landing_traj.date_str;
-% BA_test_result.r_search = r_search;
-% BA_test_result.k_bar_ba_search = k_bar_ba_search;
-% BA_test_result.terrain_name = terrain_name;
-% BA_test_result.params = params;
-% BA_test_result.K_p = K_p;
-% BA_test_result.K_d = K_d;
-% BA_test_result.delta_increment = delta_increment;
-% date_str = datestr(now,'yyyy-mm-dd-HH-MM');
-% BA_test_result.date_str = date_str;
-% 
-% filename = sprintf('BA_param_result_%s_terrain_%s.mat', date_str, terrain_name(31:33));
-% subfolder = 'BA_test_results';
-% save(fullfile(subfolder,filename),'BA_test_result')
+BA_test_result.ocl_traj_name = ocl_traj.date_str;
+BA_test_result.landing_traj_name = landing_traj.date_str;
+BA_test_result.r_search = r_search;
+BA_test_result.k_bar_ba_search = k_bar_ba_search;
+BA_test_result.terrain_name = terrain_name;
+BA_test_result.params = params;
+BA_test_result.K_p = K_p;
+BA_test_result.K_d = K_d;
+BA_test_result.delta_increment = delta_increment;
+date_str = datestr(now,'yyyy-mm-dd-HH-MM');
+BA_test_result.date_str = date_str;
+
+filename = sprintf('BA_param_result_%s_terrain_%s.mat', date_str, terrain_name(31:end-4));
+subfolder = 'BA_test_results';
+save(fullfile(subfolder,filename),'BA_test_result')
 
 %% 
 Tf = 10;
@@ -121,6 +117,13 @@ while(1)
     end
     display(removed_entries)
 
+    % save the results
+    elapsed_time = toc;
+    fprintf("Elapsed time = %f mins \n", elapsed_time/60)
+    BA_test_result.elapsed_time = elapsed_time;
+    BA_test_result.search_list = search_list;
+    save(fullfile(subfolder,filename), 'BA_test_result')
+
     % end the loop if search is complete
     if isnan(search_list(end, 6)) ~= true
         break
@@ -132,37 +135,23 @@ while(1)
     fprintf("Remaining iteration number = %d \n", remaining_iterations)
 end
 
-elapsed_time = toc;
-fprintf("Elapsed time = %f mins \n", elapsed_time/60)
+%% Extract the PASS from search_list
 
-% %%
-% for i=start_i:length(r_search)
-%     for j=1:length(k_bar_ba_search)
-%         % biarticular muscle parameters
-% 
-%         params.r = r_search(i); % dimensionless lever arm ratio (found from optimizing wrt SR) r = r_h / r_k
-%         params.k_bar_ba = k_bar_ba_search(j); % [Nm] k_bar_ba = k_ba * r_k^2
-% 
-%         params.r_h = params.r*params.r_k; % [m]
-%         params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
-%         param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
-% 
-%         fprintf ('-----r=%.4f, k_bar_ba=%.4f----- \n', params.r, params.k_bar_ba);
-% 
-%         % Search for the failing point (delta bar) by skipping  and searching in minus direction
-%         % skip_amount = 10;
-%         % [simout, inputTorque, des_theta_alpha, flag, time, PASS(i,j), k] = search_delta_bar(landing_traj, uneven_terrain, params, Tf, gains, skip_amount);
-%         [PASS(i,j), k] = search_delta_bar_parallel( ...
-%             landing_traj, uneven_terrain, params, Tf, K_p, K_d, delta_increment);
-%         BA_test_result.PASS = PASS;
-%         fprintf ('delta_bar = %.4f [m] \n', PASS(i,j))
-%         save(fullfile(subfolder,filename),'BA_test_result')
-%     end
-% end
-% elapsed_time = toc;
-% 
-% fprintf("Test Completed Successfully for r = " + num2str(r_search(1)) + ...
-%     ":" + num2str(r_search(end)) +", k_bar_ba = " + num2str(k_bar_ba_search(1)) + ...
-%     ":" + num2str(k_bar_ba_search(end))+ "\n")
-% 
-% fprintf("Elapsed time was " + num2str(elapsed_time/60) + " mins \n")
+for i = 1:length(r_search)
+    for j = 1:length(k_bar_ba_search)
+        fail_points = find(search_list(:,1) == r_search(i)& search_list(:,2) == k_bar_ba_search(j) & search_list(:,6) == 0);
+        PASS(i,j) = search_list(fail_points(1), 5) - delta_increment;
+    end
+end
+
+% save the results
+elapsed_time = toc;
+fprintf("Elapsed final time = %f mins \n", elapsed_time/60)
+BA_test_result.elapsed_time = elapsed_time;
+BA_test_result.PASS = PASS;
+save(fullfile(subfolder,filename), 'BA_test_result')
+
+% PASS_w_header(1, 1) = NaN;
+% PASS_w_header(2:(1+length(r_search)), 1) = r_search';
+% PASS_w_header(1, 2:(1+length(k_bar_ba_search))) = k_bar_ba_search;
+% PASS_w_header(2:(1+length(r_search)), 2:(1+length(k_bar_ba_search))) = PASS;

@@ -10,13 +10,6 @@ addpath("..\") % add above directory to path
 
 load('..\OpenOCLTraj\BA_landing_traj_v12022-07-06-17-15'); % loads the landing_traj variable
 ocl_traj = landing_traj.ocl_traj;
-%% uneven ground input
-
-terrain_name = '..\terrain data\unevenground_v3_2.mat'; % single seed
-load(terrain_name)
-
-% try catch is because I previously didn't have "seed" fields for some terrain
-uneven_terrain.y_g_curr = 0.001 * uneven_terrain.y_g_seed; % set this temporarily for BUS setting
 %% Model parameters
 params.m1 = 5;
 params.m2 = 5;
@@ -51,16 +44,121 @@ r_search = 1:0.2:5;
 k_bar_ba_search = 0:5:200;
 
 % r_search = 1:0.2:1.4;
-% k_bar_ba_search = 0:10:50;
+% k_bar_ba_search = 0:25:50;
 
 start_i = 1;
 delta_increment = 0.001;
+subfolder = 'BA_test_results';
 
 % loading an old result and continuing from its last row
 % display("***Loading From an Old Result***")
- % TODO
+% TODO
 
-% recording
+%%
+Tf = 10;
+
+load_system('model_5LinkWalking_NODS')
+
+tic
+
+% Search Parameters
+delta_search = 0:delta_increment:0.2; % [m]
+search_list_length = length(r_search)*length(k_bar_ba_search)*length(delta_search);
+[r_search_tmp, k_bar_ba_search_tmp, delta_search_tmp] = ndgrid(r_search, k_bar_ba_search, delta_search);
+% clear r_search_tmp k_bar_ba_search_tmp delta_search_tmp search_list_length % TODO
+
+search_size = 8*8; % making it a multiple of 8 since this PC has 8 cores
+terrain_search_list = [3, 4, 5, 6, 7, 8, 9, 10];
+
+for j = 1:length(terrain_search_list)
+    % iteratate through terrains in terrain_search_list
+
+    % clear data from the prev. search
+    clear search_list BA_test_result PASS uneven_terrain
+
+    % load the uneven ground
+    terrain_name =num2str("..\terrain data\unevenground_v3_" + num2str(terrain_search_list(j)) + ".mat"); % single seed
+    load(terrain_name)
+
+    % initialize the recording
+    [BA_test_result, filename] = initialize_recording(ocl_traj, landing_traj, r_search, k_bar_ba_search, terrain_name, params, K_p, K_d, delta_increment, subfolder);
+    fprintf("Current filename is %s \n", filename)
+    
+    % create the search_list
+    search_list = [r_search_tmp(:), k_bar_ba_search_tmp(:), K_p*ones(search_list_length, 1), K_d*ones(search_list_length, 1), delta_search_tmp(:), NaN(search_list_length, 1)];
+
+    % try catch is because I previously didn't have "seed" fields for some terrain
+    uneven_terrain.y_g_curr = 0.001 * uneven_terrain.y_g_seed; % set this temporarily for BUS setting
+
+    % start the search
+    iter_cur = 1;
+    tic
+    while(1)
+
+        % append to the current search list
+        search_list_cur = search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :);
+
+        % do the search
+        search_list_cur = run_walking_simulation_parallel(landing_traj, uneven_terrain, params, Tf, search_list_cur);
+        search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :) = search_list_cur;
+
+        % remove unnecessary queries from the search_list
+        removed_entries = 0;
+        for i = 1:length(search_list_cur)
+            if search_list_cur(i, 6) == 0
+                search_list( ...
+                    search_list(:,1) == search_list_cur(i, 1) & ...
+                    search_list(:,2) == search_list_cur(i, 2) & ...
+                    isnan(search_list(:,6)), :) = [];
+                removed_entries = removed_entries + 1;
+            end
+        end
+        display(removed_entries)
+
+        % save the results
+        elapsed_time = toc;
+        fprintf("Elapsed time = %f mins \n", elapsed_time/60)
+        BA_test_result.elapsed_time = elapsed_time;
+        BA_test_result.search_list = search_list;
+        save(fullfile(subfolder,filename), 'BA_test_result')
+
+        % end the loop if search is complete
+        if isnan(search_list(end, 6)) ~= true
+            break
+        end
+
+        % increase the iteration
+        iter_cur = iter_cur + search_size;
+        remaining_iterations = length(search_list) - iter_cur + 1;
+        fprintf("Remaining iteration number = %d, current terrain is 3v%d \n", remaining_iterations, terrain_search_list(j))
+    end
+
+    %% Extract the PASS from search_list
+
+    for i = 1:length(r_search)
+        for j = 1:length(k_bar_ba_search)
+            fail_points = find(search_list(:,1) == r_search(i)& search_list(:,2) == k_bar_ba_search(j) & search_list(:,6) == 0);
+            PASS(i,j) = search_list(fail_points(1), 5) - delta_increment;
+        end
+    end
+
+    % save the results
+    elapsed_time = toc;
+    fprintf("Elapsed final time = %f mins \n", elapsed_time/60)
+    BA_test_result.elapsed_time = elapsed_time;
+    BA_test_result.PASS = PASS;
+    save(fullfile(subfolder,filename), 'BA_test_result')
+
+end
+%%
+
+% PASS_w_header(1, 1) = NaN;
+% PASS_w_header(2:(1+length(r_search)), 1) = r_search';
+% PASS_w_header(1, 2:(1+length(k_bar_ba_search))) = k_bar_ba_search;
+% PASS_w_header(2:(1+length(r_search)), 2:(1+length(k_bar_ba_search))) = PASS;
+
+%%
+function [BA_test_result, filename] = initialize_recording(ocl_traj, landing_traj, r_search, k_bar_ba_search, terrain_name, params, K_p, K_d, delta_increment, subfolder)
 BA_test_result.ocl_traj_name = ocl_traj.date_str;
 BA_test_result.landing_traj_name = landing_traj.date_str;
 BA_test_result.r_search = r_search;
@@ -74,84 +172,5 @@ date_str = datestr(now,'yyyy-mm-dd-HH-MM');
 BA_test_result.date_str = date_str;
 
 filename = sprintf('BA_param_result_%s_terrain_%s.mat', date_str, terrain_name(31:end-4));
-subfolder = 'BA_test_results';
 save(fullfile(subfolder,filename),'BA_test_result')
-
-%% 
-Tf = 10;
-
-load_system('model_5LinkWalking_NODS')
-
-tic
-
-% creating the search list
-delta_search = 0:delta_increment:0.2; % [m]
-search_list_length = length(r_search)*length(k_bar_ba_search)*length(delta_search);
-[r_search_tmp, k_bar_ba_search_tmp, delta_search_tmp] = ndgrid(r_search, k_bar_ba_search, delta_search);
-search_list = [r_search_tmp(:), k_bar_ba_search_tmp(:), K_p*ones(search_list_length, 1), K_d*ones(search_list_length, 1), delta_search_tmp(:), NaN(search_list_length, 1)];
-% clear r_search_tmp k_bar_ba_search_tmp delta_search_tmp search_list_length % TODO
-
-search_size = 8*8; % making it a multiple of 8 since this PC has 8 cores
-
-iter_cur = 1;
-tic
-while(1)
-
-    % append to the current search list
-    search_list_cur = search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :);
-
-    % do the search
-    search_list_cur = run_walking_simulation_parallel(landing_traj, uneven_terrain, params, Tf, search_list_cur);
-    search_list(iter_cur:min((iter_cur + search_size - 1), length(search_list)), :) = search_list_cur;
-
-    % remove unnecessary queries from the search_list
-    removed_entries = 0;
-    for i = 1:length(search_list_cur)
-        if search_list_cur(i, 6) == 0
-            search_list( ...
-                search_list(:,1) == search_list_cur(i, 1) & ...
-                search_list(:,2) == search_list_cur(i, 2) & ...
-                isnan(search_list(:,6)), :) = [];
-            removed_entries = removed_entries + 1;
-        end
-    end
-    display(removed_entries)
-
-    % save the results
-    elapsed_time = toc;
-    fprintf("Elapsed time = %f mins \n", elapsed_time/60)
-    BA_test_result.elapsed_time = elapsed_time;
-    BA_test_result.search_list = search_list;
-    save(fullfile(subfolder,filename), 'BA_test_result')
-
-    % end the loop if search is complete
-    if isnan(search_list(end, 6)) ~= true
-        break
-    end
-
-    % increase the iteration
-    iter_cur = iter_cur + search_size;
-    remaining_iterations = length(search_list) - iter_cur + 1;
-    fprintf("Remaining iteration number = %d \n", remaining_iterations)
 end
-
-%% Extract the PASS from search_list
-
-for i = 1:length(r_search)
-    for j = 1:length(k_bar_ba_search)
-        fail_points = find(search_list(:,1) == r_search(i)& search_list(:,2) == k_bar_ba_search(j) & search_list(:,6) == 0);
-        PASS(i,j) = search_list(fail_points(1), 5) - delta_increment;
-    end
-end
-
-% save the results
-elapsed_time = toc;
-fprintf("Elapsed final time = %f mins \n", elapsed_time/60)
-BA_test_result.elapsed_time = elapsed_time;
-BA_test_result.PASS = PASS;
-save(fullfile(subfolder,filename), 'BA_test_result')
-
-% PASS_w_header(1, 1) = NaN;
-% PASS_w_header(2:(1+length(r_search)), 1) = r_search';
-% PASS_w_header(1, 2:(1+length(k_bar_ba_search))) = k_bar_ba_search;
-% PASS_w_header(2:(1+length(r_search)), 2:(1+length(k_bar_ba_search))) = PASS;

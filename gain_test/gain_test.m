@@ -45,12 +45,16 @@ KD_search = 0:20:500;
 r = 1;
 k_bar_ba = 0;
 
-start_i = 1;
+start_j = 1;
 delta_increment = 0.001;
 subfolder = 'gain_test_results';
 
 % loading an old result and continuing from its last row
-% display("***Loading From an Old Result***")
+display("***Loading From an Old Result***")
+load("gain_test_results\gain_test_result_2023-02-14-12-18_terrain_3_3.mat")
+flag_old_result = true;
+search_list = gain_result.search_list;
+start_j = 3;
 % TODO
 
 %%
@@ -70,27 +74,51 @@ search_size = 8*8; % making it a multiple of 8 since this PC has 8 cores
 terrain_search_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 % terrain_search_list = [1, 2];
 
-for j = 1:length(terrain_search_list)
+if flag_old_result
+    % adjust the terrain search list if and old results is used
+    terrain_search_list = str2double(gain_result.terrain_name(33)):terrain_search_list(end);
+    assert(gain_result.terrain_name(34) == ".", "Terrain number is not a single digit")
+end
+
+%% DO the loop
+for j = start_j:length(terrain_search_list)
     % iteratate through terrains in terrain_search_list
 
-    % clear data from the prev. search
-    clear search_list gain_result PASS uneven_terrain
+    if flag_old_result == false
+        % if a new search has begun from scratch
+
+        % clear data from the prev. search
+        clear search_list gain_result PASS uneven_terrain
+
+        % initialize the recording
+        [gain_result, filename] = initialize_recording(ocl_traj, landing_traj, r, k_bar_ba, terrain_name, params, KP_search, KD_search, delta_increment, subfolder);
+        fprintf("Current filename is %s \n", filename)
+
+        % create the search_list
+        search_list = [
+            r*ones(search_list_length, 1), ...
+            k_bar_ba*ones(search_list_length, 1), ...
+            KP_search_tmp(:), KD_search_tmp(:), ...
+            delta_search_tmp(:), ...
+            NaN(search_list_length, 1)];
+
+        terrain_name =num2str("..\terrain data\unevenground_v3_" + num2str(terrain_search_list(j)) + ".mat"); % single seed
+
+        iter_cur = 1;
+    else
+        iter_cur = length(search_list(~isnan(search_list(:,6)))) + 1;
+        assert(sum(isnan(search_list(1:iter_cur-1,6))) == 0, "There are NaN values in the search_list prev. entries")
+        filename = sprintf('gain_test_result_%s_terrain_%s.mat', gain_result.date_str, gain_result.terrain_name(31:end-4));
+        flag_old_result = false;
+        terrain_name =num2str("..\terrain data\unevenground_v3_" + num2str(terrain_search_list(j)) + ".mat"); % single seed
+    end
 
     % load the uneven ground
-    terrain_name =num2str("..\terrain data\unevenground_v3_" + num2str(terrain_search_list(j)) + ".mat"); % single seed
     load(terrain_name)
-
-    % initialize the recording
-    [gain_result, filename] = initialize_recording(ocl_traj, landing_traj, r, k_bar_ba, terrain_name, params, KP_search, KD_search, delta_increment, subfolder);
-    fprintf("Current filename is %s \n", filename)
-    
-    % create the search_list
-    search_list = [r*ones(search_list_length, 1), k_bar_ba*ones(search_list_length, 1), KP_search_tmp(:), KD_search_tmp(:), delta_search_tmp(:), NaN(search_list_length, 1)];
 
     uneven_terrain.y_g_curr = 0.001 * uneven_terrain.y_g_seed; % set this temporarily for BUS setting
 
     % start the search
-    iter_cur = 1;
     tic
     while(1)
 

@@ -52,10 +52,10 @@ def_y = result(1).BA_params_test_result.k_bar_ba_search;
 mean_BAparam = sum_BAparam./length(result);
 
 % max values of BA param test
-[max_val_BA, idx] = max(mean_BAparam(:));
-[row_BA, col_BA] = ind2sub(size(mean_BAparam),idx);
-fprintf("Max value of delta_bar is " + num2str(max_val_BA) + ...
-    " where r = " + num2str(def_x(row_BA)) + ", k_bar_ba = " + num2str(def_y(col_BA)) + "\n")
+% [max_val_BA, idx] = max(mean_BAparam(:));
+% [row_BA, col_BA] = ind2sub(size(mean_BAparam),idx);
+% fprintf("Max value of delta_bar is " + num2str(max_val_BA) + ...
+%     " where r = " + num2str(def_x(row_BA)) + ", k_bar_ba = " + num2str(def_y(col_BA)) + "\n")
 
 % Merging SR and robustness criterions
 % crit = mean_BAparam ./ mean_SR;
@@ -63,6 +63,31 @@ fprintf("Max value of delta_bar is " + num2str(max_val_BA) + ...
 
 mean_BAparam_normalized = mean_BAparam./mean_BAparam(1, 1);
 mean_SR_normalized = (mean_SR(1, 1)./mean_SR);
+
+% max values of normalized BA param test
+[max_val_BA, idx] = max(mean_BAparam_normalized(:));
+[row_BA, col_BA] = ind2sub(size(mean_BAparam_normalized),idx);
+fprintf("Max value of delta_bar is " + num2str(max_val_BA) + ...
+    " where r = " + num2str(def_x(row_BA)) + ", k_bar_ba = " + num2str(def_y(col_BA)) + "\n")
+
+figure()
+def_z = mean_BAparam_normalized;
+surf(def_x, def_y, def_z')
+colormap jet
+colorbar
+font_size = 14;
+xlabel('r', "Interpreter", "latex", "FontSize", font_size)
+ylabel("$\bar{\kappa}$ [N/m]", "Interpreter", "latex", "FontSize", font_size)
+zlabel("$\bar{\delta}^*$", 'Interpreter', "latex", "FontSize", font_size)
+% view([0 90])
+% view([30 60])
+% figure_title = "$\delta$ = " + num2str(0.025) + "[m], $\alpha_1 = $" ...
+%     + num2str(alpha_1) + ", $\alpha_2 = $" + num2str(alpha_2);
+% title(figure_title, "Interpreter", "latex", "FontSize", font_size)
+
+% figure_title = "$min\(\bar{\delta}$ - 1, 1/SR^* -1\)$";
+figure_title = "$\bar{\delta}^*$";
+title(figure_title, "Interpreter", "latex", "FontSize", font_size)
 
 % alpha_1 = 2;
 % alpha_2 = 1;
@@ -80,8 +105,8 @@ colorbar
 font_size = 14;
 xlabel('r', "Interpreter", "latex", "FontSize", font_size)
 ylabel("$\bar{\kappa}$ [N/m]", "Interpreter", "latex", "FontSize", font_size)
-zlabel('$\alpha_1 \bar{\delta}^* + \alpha_2 / SR^*$', 'Interpreter', "latex", "FontSize", font_size)
-view([0 90])
+% zlabel('$\alpha_1 \bar{\delta}^* + \alpha_2 / SR^*$', 'Interpreter', "latex", "FontSize", font_size)
+% view([0 90])
 % view([30 60])
 % figure_title = "$\delta$ = " + num2str(0.025) + "[m], $\alpha_1 = $" ...
 %     + num2str(alpha_1) + ", $\alpha_2 = $" + num2str(alpha_2);
@@ -95,10 +120,12 @@ title(figure_title, "Interpreter", "latex", "FontSize", font_size)
 [max_val, idx] = max(def_z(:));
 [row, col] = ind2sub(size(def_z),idx);
 
-fprintf("Max value of the criterion is " + num2str(max_val) + ...
+criterion_string = "min(1 - delta_bar^*star, 1 - 1/SR^*)";
+
+fprintf("Max value of " + criterion_string + " is " + num2str(max_val) + ...
     " where r = " + num2str(def_x(row)) + ", k_bar_ba = " + num2str(def_y(col)) + "\n")
 
-fprintf("For max value of the criterion is delta^* is " + num2str(mean_BAparam_normalized(row, col)) + ...
+fprintf("For max value of " + criterion_string + " is delta^* is " + num2str(mean_BAparam_normalized(row, col)) + ...
     " and 1/SR^* = " + num2str(mean_SR_normalized(row, col)) + "\n")
 
 function results_mean = average_SR(file_name, SR_lim)
@@ -161,16 +188,26 @@ def_z = results_mean;
 % ylim(SR_lim)
 
 % min values of SR
-[min_val, idx] = min(def_z(:));
-[row, col] = ind2sub(size(def_z),idx);
-
-fprintf("Max value of the SR is " + num2str(min_val) + ...
-    " where r = " + num2str(def_x(row)) + ", k_bar_ba = " + num2str(def_y(col)) + "\n")
+% [min_val, idx] = min(def_z(:));
+% [row, col] = ind2sub(size(def_z),idx);
+% 
+% fprintf("Max value of the SR is " + num2str(min_val) + ...
+%     " where r = " + num2str(def_x(row)) + ", k_bar_ba = " + num2str(def_y(col)) + "\n")
 
 % relative plot (SR^*)
+SR_star = (def_z./def_z(1,1));
+one_over_SR_star = 1 ./ SR_star;
+
+% min value of 1 / SR^*
+[max_val, idx] = max(one_over_SR_star(:));
+[row, col] = ind2sub(size(SR_star),idx);
+
+fprintf("Max value of the SR^* is " + num2str(max_val) + ...
+    " where r = " + num2str(def_x(row)) + ", k_bar_ba = " + num2str(def_y(col)) + "\n")
+
 figure()
 
-surf(def_x, def_y, 1./(def_z./def_z(1,1))')
+surf(def_x, def_y, one_over_SR_star')
 colormap jet
 colorbar
 
@@ -182,6 +219,6 @@ ylabel("$\bar{\kappa}$ [N/m]", "Interpreter", "latex", "FontSize", font_size)
 zlabel('1/$SR^*$', 'Interpreter', "latex", "FontSize", font_size)
 % zlim(SR_lim)
 % xlim([0,500])
-view([0 90])
+% view([0 90])
 
 end

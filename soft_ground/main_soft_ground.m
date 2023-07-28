@@ -122,6 +122,14 @@ options = simset('SrcWorkspace','current');
 sim('model_5LinkWalk_NODS_soft_ground', [], options)
 
 simout_non_floating = [simout(:, 3:7), simout(:, 10:14)];
+
+%% GRF plots
+figure()
+plot(time, lambda_SS)
+xlabel("Time [sec]")
+ylabel("\lambda_{ss} [N]")
+legend("x", "y")
+xlim([0,2])
 %% Trajectory Tracking Plots
 
 f_print = 0;

@@ -55,8 +55,8 @@ params.k_bar_ba = 200; % [Nm] k_bar_ba = k_ba * r_k^2
 
 params.r_k = 0.02; % [m] we choose this value and rest of the parameters are defined according to it and r, k_bar_ba
 params.r_h = params.r*params.r_k; % [m]
-params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
-% params.k_ba = 0; % [N/m]
+% params.k_ba = params.k_bar_ba/(params.r_k^2); % [N/m]
+params.k_ba = 0; % [N/m]
 params.phi_h0 = pi; % [rad] free angle of springs at hip
 params.phi_k0 = pi; % [rad] free angle of springs at knee
 
@@ -101,8 +101,9 @@ param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; param
 
 %%
 N = 3; % desired starting position of the simulation
-q0 =  [ocl_traj.simout(N,1); ocl_traj.simout(N,2); ocl_traj.simout(N,3); ocl_traj.simout(N,4); ocl_traj.simout(N,5)];
-dq0 = [ocl_traj.simout(N,6); ocl_traj.simout(N,7); ocl_traj.simout(N,8); ocl_traj.simout(N,9); ocl_traj.simout(N,10)];
+% TODO: initial state stance foot can start on rough terrain
+q0 =  [0; 0; ocl_traj.simout(N,1); ocl_traj.simout(N,2); ocl_traj.simout(N,3); ocl_traj.simout(N,4); ocl_traj.simout(N,5)];
+dq0 = [0; 0; ocl_traj.simout(N,6); ocl_traj.simout(N,7); ocl_traj.simout(N,8); ocl_traj.simout(N,9); ocl_traj.simout(N,10)];
 X = [q0; dq0];
 
 Initial_state = [q0;dq0];
@@ -119,19 +120,22 @@ init_flag = [-1; 0; ocl_traj.x_sw(1); init_t_mode_change; alpha_ref(1); 0; y_g_c
 %%
 options = simset('SrcWorkspace','current');
 sim('model_5LinkWalk_NODS_soft_ground', [], options)
+
+simout_non_floating = [simout(:, 3:7), simout(:, 10:14)];
 %% Trajectory Tracking Plots
 
 f_print = 0;
 time_start = 0;
 time_end = 2;
-trackingPlots(simout, inputTorque, des_theta_alpha, param, flag, time, f_print, time_start, time_end) % for unnamed conference 2023
+trackingPlots(simout_non_floating, inputTorque, des_theta_alpha, param, flag, time, f_print, time_start, time_end) % for unnamed conference 2023
 
 %% Animation
-f_animation = 0;
+f_animation = 1;
 if f_animation == 1
     f_video = 0; % flag for recording video
     f_pause = 0;
-    frame_leap = 10;
-    animation(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
+    frame_leap = 5;
+    deltaY = 0.001;
+    animation(f_video, simout_non_floating, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
 pause
 end

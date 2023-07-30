@@ -1,4 +1,4 @@
-function animation_floating(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
+function animation_floating(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY, start_end_time)
 pause
 if f_video == 1
     video_v = VideoWriter('5link_SLIP_walking.avi');
@@ -24,15 +24,19 @@ k_ba = param(13);
 phi_h0 = param(14);
 phi_k0 = param(15);
 
-%%%%%%%%%%%
-start_sec = 1; % start second for the animation
-end_sec = 20; % ending second for the animation
-
-% figure
-figure('units','pixels','position',[0 0 720 720])
 nt = length(simout);
 
-for i = 1:frame_leap:nt
+%%%%%%%%%%%
+start_sec = start_end_time(1); % start second for the animation
+end_sec = start_end_time(2); % ending second for the animation
+
+sample_time = time(2) - time(1);
+start_frame = start_sec/sample_time;
+end_frame = min(nt, end_sec/sample_time);
+
+figure('units','pixels','position',[0 0 720 720])
+
+for i = start_frame:frame_leap:end_frame
     
     current_X = simout(i,:);
     current_X_non_floating = [current_X(:,3:7), current_X(:,10:14)];
@@ -63,7 +67,7 @@ for i = 1:frame_leap:nt
     CoM= calculate_com(current_X, param, flag(i,:), [0;0;0;0;0]);
     xG = CoM(1);
     zG = CoM(2);
-    plot(xG, zG, 'o', 'MarkerSize', 7, 'MarkerFaceColor', 'b');
+    % plot(xG, zG, 'o', 'MarkerSize', 7, 'MarkerFaceColor', 'b');
     %-----------------------------------------------------------
     
     % plotting uneven terrain ----------------------------------------------

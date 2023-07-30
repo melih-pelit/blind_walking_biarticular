@@ -151,18 +151,34 @@ legend("x", "y")
 xlim([0,2])
 %% Trajectory Tracking Plots
 
-f_print = 0;
-time_start = 0;
-time_end = 2;
+f_print = 1;
+time_start = 5;
+time_end = 8;
 trackingPlots(simout_non_floating, inputTorque, des_theta_alpha, param, flag, time, f_print, time_start, time_end) % for unnamed conference 2023
+
+%% y_st traj
+figure()
+plot(time, simout(:,2))
+xlim([time_start, time_end])
+xlabel("Time [sec]")
+ylabel("y_{st} [m]")
+grid on
+
+if f_print == 1
+    set(gcf, 'color', 'none');
+    set(gca, 'color', 'none');
+    print(gcf,'y_st_trajectory.png','-dpng','-r300');
+end
+
 
 %% Animation
 f_animation = 1;
 if f_animation == 1
-f_video = 0; % flag for recording video
+    f_video = 1; % flag for recording video
     f_pause = 0;
     frame_leap = 5;
     deltaY = 0.001;
-    animation_floating(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
-pause
+    start_end_time = [5, 10];
+    animation_floating(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY, start_end_time)
+    pause
 end

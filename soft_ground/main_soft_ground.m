@@ -60,7 +60,10 @@ params.k_ba = 0; % [N/m]
 params.phi_h0 = pi; % [rad] free angle of springs at hip
 params.phi_k0 = pi; % [rad] free angle of springs at knee
 
-param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
+% ground parameters
+params.k_ground = 90000;
+params.d_ground = 10;
+
 %% 
 
 Tf = 10;
@@ -97,8 +100,24 @@ uneven_terrain_bus = evalin('base', uneven_terrain_bus_info.busName);
 sample_time = 0.001;
 
 %%
-param = [params.m1; params.m2; params.m5; params.l1; params.l2; params.l5; params.g; params.I1; params.I2; params.I5; params.r_k; params.r_h; params.k_ba; params.phi_h0; params.phi_k0];
-
+param = [
+    params.m1; 
+    params.m2; 
+    params.m5; 
+    params.l1; 
+    params.l2; 
+    params.l5; 
+    params.g; 
+    params.I1; 
+    params.I2; 
+    params.I5; 
+    params.r_k; 
+    params.r_h; 
+    params.k_ba; 
+    params.phi_h0; 
+    params.phi_k0;
+    params.k_ground;
+    params.d_ground];
 %%
 N = 3; % desired starting position of the simulation
 % TODO: initial state stance foot can start on rough terrain
@@ -140,10 +159,10 @@ trackingPlots(simout_non_floating, inputTorque, des_theta_alpha, param, flag, ti
 %% Animation
 f_animation = 1;
 if f_animation == 1
-    f_video = 0; % flag for recording video
+f_video = 0; % flag for recording video
     f_pause = 0;
     frame_leap = 5;
     deltaY = 0.001;
-    animation(f_video, simout_non_floating, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
+    animation_floating(f_video, simout, param, f_pause, frame_leap, flag, uneven_terrain, time, k, deltaY)
 pause
 end

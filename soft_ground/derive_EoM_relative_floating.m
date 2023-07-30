@@ -1,5 +1,6 @@
 % 2020/10/22 Calculating equation of motion of fully actuated 5 linked
-% bipedal robot model with relative angles (floating point)
+% bipedal robot model with relative angles (floating point) and saving into
+% symbolic_matrix.txt
 
 % PELIT Mustafa Melih
 
@@ -96,19 +97,19 @@ dJ_c_SS(2,:) = [0, 0, 0, 0, 0, 0, 0];
 %% Double stance phase constraint
 % x and y positions of the swing foot
 x_sw = x_st + l1*cos(th1) + l2*cos(th1 + th2) + l3*cos(th1 + th2 + th3) + l4*cos(th1 + th2 + th3 + th4);
-y_sw = y_st + l1*sin(th1) + l2*sin(th1 + th2) + l3*sin(th1 + th2 + th3) + l4*sin(th1 + th2 + th3 + th4);
+% y_sw = y_st + l1*sin(th1) + l2*sin(th1 + th2) + l3*sin(th1 + th2 + th3) + l4*sin(th1 + th2 + th3 + th4);
 
 % vector of the constrained points
-x_constrained = [x_st; y_st; x_sw; y_sw];
+x_constrained = [x_sw];
 
 % constraint jacobian in the double stance phase
-J_c_DS = jacobian(x_constrained, q);
+J_c_impact = jacobian(x_constrained, q);
 
-jacobSize = size(J_c_DS);
+jacobSize = size(J_c_impact);
 dJ_c_DS = sym(zeros(jacobSize(1), jacobSize(2)));
 for i = 1:1:jacobSize(1)
     for j = 1:1:jacobSize(2)
-        dJ_c_DS(i,j) = simplify(jacobian(J_c_DS(i, j), q) * dq);
+        dJ_c_DS(i,j) = simplify(jacobian(J_c_impact(i, j), q) * dq);
     end
 end
 
@@ -125,10 +126,8 @@ J_c_SS_str = "J_c_SS = " + J_c_SS_str + ";";
 dJ_c_SS_str = char(dJ_c_SS);
 dJ_c_SS_str = "dJ_c_SS = " + dJ_c_SS_str + ";";
 
-J_c_DS_str = char(J_c_DS);
-J_c_DS_str = "J_c_DS = " + J_c_DS_str + ";";
-dJ_c_DS_str = char(dJ_c_DS);
-dJ_c_DS_str = "dJ_c_DS = " + dJ_c_DS_str + ";";
+J_c_impact = char(J_c_impact);
+J_c_impact = "J_c_impact = " + J_c_impact + ";";
 
 dxG_str = char(dxG);
 dxG_str = "dXG = " + dxG_str + ";";
@@ -150,9 +149,7 @@ fprintf(fileID, '%s', M_str);
 fprintf(fileID, '\n');
 fprintf(fileID, '%s', H_str);
 fprintf(fileID, '\n');
-fprintf(fileID, '%s', J_c_DS_str);
-fprintf(fileID, '\n');
-fprintf(fileID, '%s', dJ_c_DS_str);
+fprintf(fileID, '%s', J_c_impact);
 fprintf(fileID, '\n');
 fprintf(fileID, '%s', dxG_str);
 fprintf(fileID, '\n');

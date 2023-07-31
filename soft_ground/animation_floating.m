@@ -32,7 +32,15 @@ end_sec = start_end_time(2); % ending second for the animation
 
 sample_time = time(2) - time(1);
 start_frame = start_sec/sample_time;
+if start_sec == 0
+    start_frame = 1;
+end
 end_frame = min(nt, end_sec/sample_time);
+
+f_ba_springs = 1;
+if k_ba == 0
+    f_ba_springs = 0;
+end
 
 figure('units','pixels','position',[0 0 720 720])
 
@@ -44,7 +52,6 @@ for i = start_frame:frame_leap:end_frame
     x_st = current_X(1);
     y_st = current_X(2);
     
-    f_ba_springs = 1;
     plot_5_links_robot(current_X_non_floating, x_st, y_st, param, f_ba_springs)
     hold on
     
@@ -53,8 +60,6 @@ for i = start_frame:frame_leap:end_frame
     th3 = current_X_non_floating(3);
     th4 = current_X_non_floating(4);
     th5 = current_X_non_floating(5);
-    
-    
     
     % Hip Location
     P_hip = [x_st + l1*cos(th1) + l2*cos(th1 + th2);

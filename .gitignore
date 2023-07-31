@@ -2,3 +2,6 @@ slprj/
 main.asv
 model_5LinkWalking_NODS.slxc
 gain_test\slprj\
+soft_ground/model_5LinkWalk_NODS_soft_ground.slxc
+soft_ground/model_5LinkWalking_NODS.slxc
+soft_ground/5link_SLIP_walking.avi
